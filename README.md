@@ -1,123 +1,107 @@
-# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+<div align="center">
 
 # MicroCode Checker
 
-**"MicroCode Checker"** - GitHub repository'lerinin popüler LLM'lerin context window'larına sığıp sığmadığını kontrol eden bir web uygulaması.
+GitHub repository içeriklerinin popüler LLM’lerin context window’una sığıp sığmadığını hesaplayan minimalist bir web uygulaması.
 
-## 🚀 Özellikler
+Minimalist tasarım • Monokrom UI • Hızlı analiz
 
-- GitHub repository URL'i ile hızlı analiz
-- Popüler LLM'ler için karşılaştırma (GPT-4, Claude, Gemini vb.)
-- Modern ve responsive tasarım
-- Gerçek zamanlı analiz sonuçları
-- Token/karakter dönüşüm hesaplamaları
+</div>
 
-## 🛠️ Teknoloji Stack'i
+TR ve EN olmak üzere iki dilde dokümantasyon aşağıdadır.
 
-- **Frontend**: React + TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui (v0.dev tabanlı)
-- **API**: Vercel Serverless Functions
-- **Deployment**: Vercel
+## 🇹🇷 Türkçe
 
-## 📦 Kurulum
+### Özellikler
 
-1. Repository'yi klonlayın:
+- GitHub repo URL’i ile hızlı analiz
+- Popüler LLM’lere göre karşılaştırma (GPT-4, Claude, Gemini vb.)
+- Monokrom, keskin çizgilere sahip, responsive arayüz
+- Token ≈ karakter hesabı (1 token ≈ 4 karakter)
 
-```bash
-git clone https://github.com/yourusername/microcode-checker.git
-cd microcode-checker
-```
+### Teknolojiler
 
-2. Bağımlılıkları yükleyin:
+- React + TypeScript + Vite
+- Tailwind CSS (v4)
+- Vercel Serverless Functions (Production API)
+
+### Kurulum
 
 ```bash
+git clone https://github.com/Tuguberk/MicroCode-Checker.git
+cd MicroCode-Checker
 npm install
-```
-
-3. Development server'ı başlatın:
-
-```bash
 npm run dev
 ```
 
-4. Browser'da `http://localhost:5173` adresini açın
+Tarayıcıda http://localhost:5173 adresini açın.
 
-## 🔧 Development
+### Kullanım
 
-### Mock API
+1. Ana sayfadaki input’a bir GitHub repo adresi girin: `https://github.com/owner/repo`
+2. Analizi başlatın; toplam karakter ve LLM uyumluluk oranlarını görün.
 
-Development modunda mock API kullanılır. Test için şu URL'leri deneyebilirsiniz:
+### Geliştirme
 
-- `https://github.com/example/small-repo` - Küçük repo (15K karakter)
-- `https://github.com/example/medium-repo` - Orta repo (150K karakter)
-- `https://github.com/example/large-repo` - Büyük repo (1.5M karakter)
+- Development modunda mock API kullanılır (src/mock/api.ts).
+- Production’da Vercel function (api/analyze.ts) GitHub API ile gerçek içerik boyutunu hesaplar.
 
-### Production API
+### Deploy (Vercel)
 
-Production'da GitHub API kullanarak gerçek analiz yapılır.
+1. Repoyu Vercel’e bağlayın.
+2. Deploy sonrası /api/analyze endpoint’i çalışır.
 
-## 🚀 Deploy
+### Lisans
 
-Vercel'e deploy etmek için:
+Bu proje MIT lisansı ile lisanslanmıştır. Detaylar için LICENSE dosyasına bakın.
 
-1. Vercel hesabınızla GitHub repository'sini bağlayın
-2. Otomatik deploy işlemi başlayacaktır
-3. API endpoint'leri Vercel Serverless Functions olarak çalışacaktır
+---
 
-## 📊 Desteklenen LLM'ler
+## 🇬🇧 English
 
-- GPT-4 (8,192 token)
-- GPT-4-32k (32,768 token)
-- GPT-3.5-Turbo-16k (16,385 token)
-- Claude 3 Sonnet (200,000 token)
-- Gemini 1.5 Pro (1,000,000 token)
+### Overview
 
-## 🤝 Katkıda Bulunma
+MicroCode Checker is a minimalist web app that calculates whether your GitHub repository content fits into the context windows of popular LLMs.
 
-1. Fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'Add some amazing feature'`)
-4. Branch'e push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açın
+### Features
 
-## 📄 Lisans
+- Quick analysis via GitHub repo URL
+- Comparison across popular LLMs (GPT-4, Claude, Gemini, etc.)
+- Monochrome, sharp-edged, responsive UI
+- Token ≈ character estimate (1 token ≈ 4 characters)
 
-Bu proje MIT lisansı altında lisanslanmıştır.
+### Tech Stack
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- React + TypeScript + Vite
+- Tailwind CSS (v4)
+- Vercel Serverless Functions (Production API)
 
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
+### Setup
 
-export default tseslint.config([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs["recommended-typescript"],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```bash
+git clone https://github.com/Tuguberk/MicroCode-Checker.git
+cd MicroCode-Checker
+npm install
+npm run dev
 ```
+
+Open http://localhost:5173 in your browser.
+
+### Usage
+
+1. Enter a GitHub repo URL on the home page: `https://github.com/owner/repo`
+2. Start analysis; view total characters and LLM compatibility ratios.
+
+### Development
+
+- In development, a mock API is used (src/mock/api.ts).
+- In production, the Vercel function (api/analyze.ts) calls GitHub API to compute real content size.
+
+### Deploy (Vercel)
+
+1. Connect the repo to Vercel.
+2. After deployment, the /api/analyze endpoint is available.
+
+### License
+
+This project is licensed under the MIT License. See the LICENSE file for details.

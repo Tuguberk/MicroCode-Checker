@@ -1,6 +1,6 @@
-import { AtSign, Github } from "lucide-react";
+import { Github } from "lucide-react";
 
-const PROJECT_REPO_URL = "https://github.com/tugberkakbulut/MicroCode-Checker";
+const PROJECT_REPO_URL = "https://github.com/Tuguberk/MicroCode-Checker";
 
 const Footer = () => {
   return (
