@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { LLM_DATA, CHARS_PER_TOKEN } from "../shared/llm";
+import { LLM_DATA, CHARS_PER_TOKEN } from "../shared/llm.js";
 
 interface GitHubTreeItem {
   path: string;

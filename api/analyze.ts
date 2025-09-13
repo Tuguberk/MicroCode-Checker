@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+// Not importing shared here, but if needed prefer explicit .js extensions in ESM
 
 interface GitHubTreeItem {
   path: string;
