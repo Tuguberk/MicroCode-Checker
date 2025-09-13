@@ -16,19 +16,7 @@ interface GitHubTreeResponse {
   truncated: boolean;
 }
 
-interface GitHubFileResponse {
-  name: string;
-  path: string;
-  sha: string;
-  size: number;
-  url: string;
-  html_url: string;
-  git_url: string;
-  download_url: string;
-  type: "file";
-  content: string;
-  encoding: "base64";
-}
+// İçerik indirmiyoruz; tree içindeki blob size alanını kullanacağız
 
 // Code file extensions to include
 const CODE_EXTENSIONS = [
@@ -119,7 +107,8 @@ const EXCLUDED_FILES = [
 ];
 
 function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
-  const match = url.match(/https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/?/);
+  const re = new RegExp("^https://github\\.com/([^/]+)/([^/]+)/?");
+  const match = url.match(re);
   if (!match) return null;
 
   return {
@@ -156,6 +145,81 @@ function shouldIncludeFile(path: string): boolean {
   );
 
   return hasCodeExtension || isConfigFile;
+}
+
+async function fetchTree(
+  owner: string,
+  repo: string,
+  refOrSha: string,
+  recursive = false
+): Promise<GitHubTreeResponse> {
+  const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/${refOrSha}${
+    recursive ? "?recursive=1" : ""
+  }`;
+  const r = await fetch(url, {
+    headers: {
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "MicroCode-Checker",
+    },
+  });
+  if (!r.ok) throw new Error(`tree fetch failed: ${r.status}`);
+  return (await r.json()) as GitHubTreeResponse;
+}
+
+type SumResult = { total: number; requests: number; approximate: boolean };
+
+async function sumBySegments(
+  owner: string,
+  repo: string,
+  refOrSha: string,
+  prefix = "",
+  budget = 300
+): Promise<SumResult> {
+  // İlk deneme: recursive; eğer truncated değilse en hızlı yol
+  let requests = 0;
+  let approximate = false;
+  const recursiveTree = await fetchTree(owner, repo, refOrSha, true);
+  requests += 1;
+  if (!recursiveTree.truncated) {
+    const total = recursiveTree.tree.reduce((sum, item) => {
+      if (item.type !== "blob") return sum;
+      const fullPath = prefix ? `${prefix}/${item.path}` : item.path;
+      return shouldIncludeFile(fullPath)
+        ? sum + (typeof item.size === "number" ? item.size : 0)
+        : sum;
+    }, 0);
+    return { total, requests, approximate };
+  }
+
+  // Truncated ise daha detaylı: non-recursive al, alt ağaçlara in
+  approximate = true; // Büyük repolarda hesap parçalı yapılacak
+  const nonRecursive = await fetchTree(owner, repo, refOrSha, false);
+  requests += 1;
+  let total = 0;
+  for (const item of nonRecursive.tree) {
+    if (budget - requests <= 0) break;
+    const fullPath = prefix ? `${prefix}/${item.path}` : item.path;
+    if (item.type === "blob") {
+      if (shouldIncludeFile(fullPath)) {
+        total += typeof item.size === "number" ? item.size : 0;
+      }
+      continue;
+    }
+    // Alt ağaç: derine inerek topla
+    const res = await sumBySegments(
+      owner,
+      repo,
+      item.sha,
+      fullPath,
+      budget - requests
+    );
+    total += res.total;
+    requests += res.requests;
+    // approximate flag propagate
+    approximate = approximate || res.approximate;
+    if (budget - requests <= 0) break;
+  }
+  return { total, requests, approximate };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -206,106 +270,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const defaultBranch = repoInfo.default_branch;
 
     // Get the repository tree recursively
-    const treeResponse = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`,
-      {
-        headers: {
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "MicroCode-Checker",
-        },
-      }
+    // Segmentli toplama: truncated durumunda derine inerek hesaplar
+    const { total, requests, approximate } = await sumBySegments(
+      owner,
+      repo,
+      defaultBranch,
+      "",
+      300
     );
 
-    if (!treeResponse.ok) {
-      throw new Error(
-        `Failed to fetch repository tree: ${treeResponse.status}`
-      );
-    }
-
-    const treeData: GitHubTreeResponse = await treeResponse.json();
-
-    // Filter files to only include code files
-    const codeFiles = treeData.tree.filter(
-      (item) => item.type === "blob" && shouldIncludeFile(item.path)
-    );
-
-    let totalCharacters = 0;
-    const fileResults: Array<{ path: string; chars: number; error?: string }> =
-      [];
-
-    // Fetch content for each file (in batches to avoid rate limiting)
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < codeFiles.length; i += BATCH_SIZE) {
-      const batch = codeFiles.slice(i, i + BATCH_SIZE);
-
-      const promises = batch.map(async (file) => {
-        try {
-          const fileResponse = await fetch(
-            `https://api.github.com/repos/${owner}/${repo}/contents/${file.path}`,
-            {
-              headers: {
-                Accept: "application/vnd.github.v3+json",
-                "User-Agent": "MicroCode-Checker",
-              },
-            }
-          );
-
-          if (!fileResponse.ok) {
-            return {
-              path: file.path,
-              chars: 0,
-              error: `HTTP ${fileResponse.status}`,
-            };
-          }
-
-          const fileData: GitHubFileResponse = await fileResponse.json();
-
-          // Decode base64 content
-          const content = Buffer.from(fileData.content, "base64").toString(
-            "utf-8"
-          );
-          const chars = content.length;
-
-          return { path: file.path, chars };
-        } catch (error) {
-          return {
-            path: file.path,
-            chars: 0,
-            error: error instanceof Error ? error.message : "Unknown error",
-          };
-        }
-      });
-
-      const batchResults = await Promise.all(promises);
-      fileResults.push(...batchResults);
-
-      // Add characters from successful files
-      batchResults.forEach((result) => {
-        if (!result.error) {
-          totalCharacters += result.chars;
-        }
-      });
-
-      // Add a small delay between batches to be respectful to GitHub API
-      if (i + BATCH_SIZE < codeFiles.length) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-    }
-
-    // Log some stats for debugging (you can remove this in production)
-    const successfulFiles = fileResults.filter((r) => !r.error);
-    const failedFiles = fileResults.filter((r) => r.error);
-
-    console.log(
-      `Analyzed ${successfulFiles.length} files, ${failedFiles.length} failed`
-    );
-    console.log(`Total characters: ${totalCharacters}`);
+    console.log(`Requests used: ${requests}`);
+    console.log(`Total characters (bytes): ${total}`);
 
     return res.status(200).json({
-      totalCharacters,
-      filesAnalyzed: successfulFiles.length,
-      filesFailed: failedFiles.length,
+      totalCharacters: total,
+      filesAnalyzed: undefined, // bilinmiyor; istek bazlı toplama
+      filesFailed: 0,
       repository: `${owner}/${repo}`,
+      approximate,
     });
   } catch (error) {
     console.error("Analysis error:", error);

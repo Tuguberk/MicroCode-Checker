@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { LLM_DATA, CHARS_PER_TOKEN } from "../shared/llm";
 
 interface GitHubTreeItem {
   path: string;
@@ -16,19 +17,7 @@ interface GitHubTreeResponse {
   truncated: boolean;
 }
 
-interface GitHubFileResponse {
-  name: string;
-  path: string;
-  sha: string;
-  size: number;
-  url: string;
-  html_url: string;
-  git_url: string;
-  download_url: string;
-  type: "file";
-  content: string;
-  encoding: "base64";
-}
+// Removed GitHubFileResponse as we now rely on tree blob sizes
 
 const CODE_EXTENSIONS = [
   ".js",
@@ -234,51 +223,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       (item) => item.type === "blob" && shouldIncludeFile(item.path)
     );
 
-    let totalCharacters = 0;
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < codeFiles.length; i += BATCH_SIZE) {
-      const batch = codeFiles.slice(i, i + BATCH_SIZE);
-      const promises = batch.map(async (file) => {
-        try {
-          const fileResponse = await fetch(
-            `https://api.github.com/repos/${owner}/${repo}/contents/${file.path}`,
-            {
-              headers: {
-                Accept: "application/vnd.github.v3+json",
-                "User-Agent": "MicroCode-Checker",
-              },
-            }
-          );
-          if (!fileResponse.ok) return 0;
-          const fileData: GitHubFileResponse = await fileResponse.json();
-          const content = Buffer.from(fileData.content, "base64").toString(
-            "utf-8"
-          );
-          return content.length;
-        } catch {
-          return 0;
-        }
-      });
-      const batchResults = await Promise.all(promises);
-      totalCharacters += batchResults.reduce((a, b) => a + b, 0);
-      if (i + BATCH_SIZE < codeFiles.length) {
-        await new Promise((r) => setTimeout(r, 100));
-      }
-    }
+    // Daha hızlı ve tutarlı: blob boyutlarını (byte) toplayalım.
+    // Çoğu kaynak için byte ~ karakter sayısı olarak kabul edilebilir.
+    const totalCharacters = codeFiles.reduce(
+      (sum, f) => sum + (typeof f.size === "number" ? f.size : 0),
+      0
+    );
 
-    // LLM thresholds (keep in sync with frontend constants if needed)
-    const LLM_CONTEXTS: Array<{ name: string; tokens: number }> = [
-      { name: "GPT-4", tokens: 8192 },
-      { name: "GPT-4-32k", tokens: 32768 },
-      { name: "GPT-3.5-16k", tokens: 16385 },
-      { name: "Claude 3 Sonnet", tokens: 200000 },
-      { name: "Gemini 1.5 Pro", tokens: 1000000 },
-    ];
-    const CHARS_PER_TOKEN = 4;
-    const fitsCount = LLM_CONTEXTS.filter(
-      (l) => totalCharacters <= l.tokens * CHARS_PER_TOKEN
+    // Paylaşılan LLM verileri ile hesapla
+    const fitsCount = LLM_DATA.filter(
+      (l) => totalCharacters <= l.contextTokens * CHARS_PER_TOKEN
     ).length;
-    const totalModels = LLM_CONTEXTS.length;
+    const totalModels = LLM_DATA.length;
     const ratio = fitsCount / totalModels;
     const color = fitsCount === 0 ? "red" : ratio < 0.5 ? "yellow" : "green";
 

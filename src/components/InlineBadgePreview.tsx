@@ -26,7 +26,8 @@ export default function InlineBadgePreview({ repoUrl }: { repoUrl: string }) {
   return (
     <div className="w-full max-w-3xl mx-auto rounded-md border border-neutral-200 p-4 text-sm space-y-3">
       <p className="text-neutral-600">
-        Aşağıdaki markdown, README dosyanıza ekleyebileceğiniz MicroCode rozetinin URL’ini içerir.
+        Aşağıdaki markdown, README dosyanıza ekleyebileceğiniz MicroCode
+        rozetinin URL’ini içerir.
       </p>
       <div className="flex items-center justify-between gap-3">
         <div className="truncate text-neutral-700">{markdown}</div>
@@ -43,26 +44,26 @@ export default function InlineBadgePreview({ repoUrl }: { repoUrl: string }) {
         </button>
       </div>
       <div className="pt-1">
-        <p className="text-neutral-500 mb-2">Örnek rozetler:</p>
+        <p className="text-neutral-500 mb-2">Stil örnekleri:</p>
         <div className="flex items-center gap-3 flex-wrap">
           {endpointFlat && (
             <img
               src={shieldSrc(endpointFlat)}
-              alt="MicroCode badge (flat)"
+              alt="MicroCode rozet (flat, bu depo verisi)"
               className="h-6"
             />
           )}
           {endpointSquare && (
             <img
               src={shieldSrc(endpointSquare)}
-              alt="MicroCode badge (flat-square)"
+              alt="MicroCode rozet (flat-square, bu depo verisi)"
               className="h-6"
             />
           )}
           {endpointFTB && (
             <img
               src={shieldSrc(endpointFTB)}
-              alt="MicroCode badge (for-the-badge)"
+              alt="MicroCode rozet (for-the-badge, bu depo verisi)"
               className="h-6"
             />
           )}
