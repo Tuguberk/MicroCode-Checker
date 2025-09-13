@@ -5,16 +5,19 @@ import type { AnalysisResult, ApiError } from "@/types";
 import { LLM_DATA, CHARS_PER_TOKEN } from "@/constants/llm-data";
 import { mockAnalyzeRepository } from "@/mock/api";
 import Footer from "@/components/Footer";
+import InlineBadgePreview from "@/components/InlineBadgePreview";
 
 function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastRepoUrl, setLastRepoUrl] = useState<string | null>(null);
 
   const analyzeRepository = async (repoUrl: string) => {
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setLastRepoUrl(repoUrl);
 
     try {
       let data;
@@ -105,10 +108,15 @@ function App() {
             </div>
           )}
 
+          {/* Inline Badge (form ile sonuç arasında gösterim) */}
+          {lastRepoUrl && <InlineBadgePreview repoUrl={lastRepoUrl} />}
+
           {/* Results */}
           <div className="w-full">
             <ResultsDisplay result={result} isLoading={isLoading} />
           </div>
+
+          {/* Badge Generator kaldırıldı – sadece inline rozet önizleme kalacak */}
         </div>
       </div>
       <Footer />
